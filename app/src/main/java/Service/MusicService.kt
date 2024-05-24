@@ -239,11 +239,21 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
     override fun onAudioFocusChange(focusChange: Int) {
         if (focusChange <= 0) {
-            pauseMusic()
+//            pauseMusic()
+            PlayerActivity.binding.playPauseBtnPA.setIconResource(R.drawable.play_icon)
+            NowPlaying.binding.playPauseBtnNP.setIconResource(R.drawable.play_icon)
+            showNotification(R.drawable.play_icon)
+            PlayerActivity.isPlaying = false
+            mediaPlayer!!.pause()
         }
-//        else{
+        else{
 //            playMusic()
-//        }
+            PlayerActivity.binding.playPauseBtnPA.setIconResource(R.drawable.pause_icon)
+            NowPlaying.binding.playPauseBtnNP.setIconResource(R.drawable.pause_icon)
+            showNotification(R.drawable.pause_icon)
+            PlayerActivity.isPlaying = true
+            mediaPlayer!!.start()
+        }
     }
 
     private fun playMusic(){
@@ -263,7 +273,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         mediaPlayer!!.pause()
         showNotification(R.drawable.play_icon)
     }
-
 
     //for making persistent
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

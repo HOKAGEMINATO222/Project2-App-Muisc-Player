@@ -8,6 +8,7 @@ import Data.getImgArt
 import Data.getMainColor
 import Data.setDialogBtnBackground
 import Data.setSongPosition
+import Fragment.NowPlaying
 import Service.MusicService
 import android.annotation.SuppressLint
 import android.content.ComponentName
@@ -39,7 +40,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class PlayerActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCompletionListener {
 
-
     companion object {
         lateinit var musicListPA : ArrayList<Music>
         var songPosition: Int = 0
@@ -57,12 +57,9 @@ class PlayerActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCom
         lateinit var loudnessEnhancer: LoudnessEnhancer
     }
 
-
-
     @SuppressLint("SetTextI18n")
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
-
         super.onCreate(savedInstanceState)
         setTheme(MainActivity.currentTheme[MainActivity.themeIndex])
         binding = ActivityPlayerBinding.inflate(layoutInflater)
@@ -85,21 +82,13 @@ class PlayerActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCom
         }
         else initializeLayout()
 
+        //audio booster feature
 
-        // btn back
+
         binding.backBtnPA.setOnClickListener { finish() }
-
-        // btn pause
         binding.playPauseBtnPA.setOnClickListener{ if(isPlaying) pauseMusic() else playMusic() }
-
-        //btn previous
         binding.previousBtnPA.setOnClickListener { prevNextSong(increment = false) }
-
-        //btn next
         binding.nextBtnPA.setOnClickListener { prevNextSong(increment = true) }
-
-
-
         binding.seekBarPA.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener{
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if(fromUser) {
@@ -110,19 +99,15 @@ class PlayerActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCom
             override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
             override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
         })
-
-
         binding.repeatBtnPA.setOnClickListener {
             if(!repeat){
                 repeat = true
-                binding.repeatBtnPA.setColorFilter(ContextCompat.getColor(this, R.color.purple_500))
+                binding.repeatBtnPA.setColorFilter(ContextCompat.getColor(this, R.color.red))
             }else{
                 repeat = false
                 binding.repeatBtnPA.setColorFilter(ContextCompat.getColor(this, R.color.cool_pink))
             }
         }
-
-
         binding.equalizerBtnPA.setOnClickListener {
             try {
                 val eqIntent = Intent(AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL)
@@ -132,8 +117,6 @@ class PlayerActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCom
                 startActivityForResult(eqIntent, 13)
             }catch (e: Exception){Toast.makeText(this,  "Equalizer Feature not Supported!!", Toast.LENGTH_SHORT).show()}
         }
-
-
         binding.timerBtnPA.setOnClickListener {
             val timer = min15 || min30 || min60
             if(!timer) showBottomSheetDialog()
@@ -163,8 +146,6 @@ class PlayerActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCom
             startActivity(Intent.createChooser(shareIntent, "Sharing Music File!!"))
 
         }
-
-
         binding.favouriteBtnPA.setOnClickListener {
             fIndex = favouriteChecker(musicListPA[songPosition].id)
             if(isFavourite){
@@ -193,15 +174,15 @@ class PlayerActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCom
                 else binding.playPauseBtnPA.setIconResource(R.drawable.play_icon)
             }
             "MusicAdapterSearch"-> initServiceAndPlaylist(MainActivity.musicListSearch, shuffle = false)
-
             "MusicAdapter" -> initServiceAndPlaylist(MainActivity.MusicListMA, shuffle = false)
-
             "FavouriteAdapter"-> initServiceAndPlaylist(FavouriteActivity.favouriteSongs, shuffle = false)
-
             "MainActivity"-> initServiceAndPlaylist(MainActivity.MusicListMA, shuffle = true)
-
             "FavouriteShuffle"-> initServiceAndPlaylist(FavouriteActivity.favouriteSongs, shuffle = true)
-
+            "PlaylistDetailsAdapter"->
+                initServiceAndPlaylist(PlaylistActivity.musicPlaylist.ref[PlaylistDetails.currentPlaylistPos].playlist, shuffle = false)
+            "PlaylistDetailsShuffle"->
+                initServiceAndPlaylist(PlaylistActivity.musicPlaylist.ref[PlaylistDetails.currentPlaylistPos].playlist, shuffle = true)
+            "PlayNext"->initServiceAndPlaylist(PlayNext.playNextList, shuffle = false, playNext = true)
         }
         if (musicService!= null && !isPlaying) playMusic()
     }
@@ -287,10 +268,12 @@ class PlayerActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCom
             val binder = service as MusicService.MyBinder
             musicService = binder.currentService()
             musicService!!.audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-
+            musicService!!.audioManager.requestAudioFocus(musicService, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN)
         }
         createMediaPlayer()
         musicService!!.seekBarSetup()
+
+
     }
 
     override fun onServiceDisconnected(name: ComponentName?) {
@@ -302,6 +285,13 @@ class PlayerActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCom
         createMediaPlayer()
         setLayout()
 
+        //for refreshing now playing image & text on song completion
+        NowPlaying.binding.songNameNP.isSelected = true
+        Glide.with(applicationContext)
+            .load(musicListPA[songPosition].artUri)
+            .apply(RequestOptions().placeholder(R.drawable.music_player_icon_slash_screen).centerCrop())
+            .into(NowPlaying.binding.songImgNP)
+        NowPlaying.binding.songNameNP.text = musicListPA[songPosition].title
     }
 
     @Deprecated("Deprecated in Java")
@@ -317,7 +307,7 @@ class PlayerActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCom
         dialog.show()
         dialog.findViewById<LinearLayout>(R.id.min_15)?.setOnClickListener {
             Toast.makeText(baseContext,  "Music will stop after 15 minutes", Toast.LENGTH_SHORT).show()
-            binding.timerBtnPA.setColorFilter(ContextCompat.getColor(this, R.color.purple_500))
+            binding.timerBtnPA.setColorFilter(ContextCompat.getColor(this, R.color.red))
             min15 = true
             Thread{Thread.sleep((15 * 60000).toLong())
                 if(min15) exitApplication()}.start()
@@ -325,7 +315,7 @@ class PlayerActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCom
         }
         dialog.findViewById<LinearLayout>(R.id.min_30)?.setOnClickListener {
             Toast.makeText(baseContext,  "Music will stop after 30 minutes", Toast.LENGTH_SHORT).show()
-            binding.timerBtnPA.setColorFilter(ContextCompat.getColor(this, R.color.purple_500))
+            binding.timerBtnPA.setColorFilter(ContextCompat.getColor(this, R.color.red))
             min30 = true
             Thread{Thread.sleep((30 * 60000).toLong())
                 if(min30) exitApplication()}.start()
@@ -333,7 +323,7 @@ class PlayerActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCom
         }
         dialog.findViewById<LinearLayout>(R.id.min_60)?.setOnClickListener {
             Toast.makeText(baseContext,  "Music will stop after 60 minutes", Toast.LENGTH_SHORT).show()
-            binding.timerBtnPA.setColorFilter(ContextCompat.getColor(this, R.color.purple_500))
+            binding.timerBtnPA.setColorFilter(ContextCompat.getColor(this, R.color.red))
             min60 = true
             Thread{Thread.sleep((60 * 60000).toLong())
                 if(min60) exitApplication()}.start()
@@ -360,10 +350,8 @@ class PlayerActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCom
 
     override fun onDestroy() {
         super.onDestroy()
-        if(musicListPA[songPosition].id == "Unknown" && !isPlaying)
-            exitApplication()
+        if(musicListPA[songPosition].id == "Unknown" && !isPlaying) exitApplication()
     }
-
     private fun initServiceAndPlaylist(playlist: ArrayList<Music>, shuffle: Boolean, playNext: Boolean = false){
         val intent = Intent(this, MusicService::class.java)
         bindService(intent, this, BIND_AUTO_CREATE)
@@ -372,6 +360,6 @@ class PlayerActivity : AppCompatActivity(), ServiceConnection, MediaPlayer.OnCom
         musicListPA.addAll(playlist)
         if(shuffle) musicListPA.shuffle()
         setLayout()
-
+        if(!playNext) PlayNext.playNextList = ArrayList()
     }
 }

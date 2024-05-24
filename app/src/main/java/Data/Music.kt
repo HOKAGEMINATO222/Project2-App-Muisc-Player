@@ -28,7 +28,8 @@ class MusicPlaylist{
 
 fun formatDuration(duration: Long):String{
     val minutes = TimeUnit.MINUTES.convert(duration, TimeUnit.MILLISECONDS)
-    val seconds = (TimeUnit.SECONDS.convert(duration, TimeUnit.MILLISECONDS) - minutes*TimeUnit.SECONDS.convert(1, TimeUnit.MINUTES))
+    val seconds = (TimeUnit.SECONDS.convert(duration, TimeUnit.MILLISECONDS) -
+            minutes*TimeUnit.SECONDS.convert(1, TimeUnit.MINUTES))
     return String.format("%02d:%02d", minutes, seconds)
 }
 fun getImgArt(path: String): ByteArray? {
@@ -52,6 +53,7 @@ fun setSongPosition(increment: Boolean){
 }
 fun exitApplication(){
     if(PlayerActivity.musicService != null){
+        PlayerActivity.musicService!!.audioManager.abandonAudioFocus(PlayerActivity.musicService)
         PlayerActivity.musicService!!.stopForeground(true)
         PlayerActivity.musicService!!.mediaPlayer!!.release()
         PlayerActivity.musicService = null}
@@ -68,8 +70,6 @@ fun favouriteChecker(id: String): Int{
     }
     return -1
 }
-
-
 fun checkPlaylist(playlist: ArrayList<Music>): ArrayList<Music>{
     playlist.forEachIndexed { index, music ->
         val file = File(music.path)

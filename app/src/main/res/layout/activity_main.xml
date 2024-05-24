@@ -18,12 +18,12 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:orientation="vertical"
-                tools:ignore="MissingConstraints">
+                app:layout_constraintBottom_toTopOf="@id/nowPlaying"
+                app:layout_constraintTop_toTopOf="parent">
 
                 <!--for buttons-->
                 <LinearLayout
@@ -50,7 +50,7 @@
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:contentDescription="@string/favourites_btn"
-                        android:drawableTop="@drawable/favorite_icon"
+                        android:drawableTop="@drawable/favourite_icon"
                         android:text="@string/favourites_btn"
                         android:textAllCaps="false"
                         android:textColor="?colorOnPrimary" />
@@ -99,12 +99,10 @@
                     android:scrollbars="vertical" />
 
             </LinearLayout>
-
             <androidx.fragment.app.FragmentContainerView
                 android:id="@+id/nowPlaying"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="5dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -112,7 +110,6 @@
                 tools:layout="@layout/fragment_now_playing"
                 android:visibility="gone"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
-
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <com.google.android.material.navigation.NavigationView

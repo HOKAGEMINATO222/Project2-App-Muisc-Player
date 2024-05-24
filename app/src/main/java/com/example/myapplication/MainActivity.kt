@@ -39,12 +39,13 @@ class MainActivity : AppCompatActivity() {
         lateinit var MusicListMA : ArrayList<Music>
         lateinit var musicListSearch : ArrayList<Music>
         var search: Boolean = false
-        var themeIndex: Int = 0
-        val currentTheme = arrayOf(R.style.coolPink, R.style.coolBlue, R.style.coolPurple, R.style.coolGreen, R.style.coolBlack)
-        val currentThemeNav = arrayOf(R.style.coolPinkNav, R.style.coolBlueNav, R.style.coolPurpleNav, R.style.coolGreenNav,
-            R.style.coolBlackNav)
-        val currentGradient = arrayOf(R.drawable.gradient_purple, R.drawable.gradient_pink, R.drawable.gradient_blue,  R.drawable.gradient_green,
-            R.drawable.gradient_black)
+        var themeIndex: Int = 2
+        val currentTheme = arrayOf(R.style.coolPink, R.style.coolBlue, R.style.coolPurple, R.style.coolGreen,
+            R.style.coolRed, R.style.coolBlack)
+        val currentThemeNav = arrayOf(R.style.coolPinkNav, R.style.coolBlueNav, R.style.coolPurpleNav,
+            R.style.coolGreenNav, R.style.coolRedNav, R.style.coolBlackNav)
+        val currentGradient = arrayOf(R.drawable.gradient_pink, R.drawable.gradient_blue, R.drawable.gradient_purple,
+            R.drawable.gradient_green, R.drawable.gradient_red, R.drawable.gradient_black)
         var sortOrder: Int = 0
         val sortingList = arrayOf(MediaStore.Audio.Media.DATE_ADDED + " DESC", MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.SIZE + " DESC")
@@ -54,19 +55,17 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val themeEditor = getSharedPreferences("THEMES", MODE_PRIVATE)
-        themeIndex = themeEditor.getInt("themeIndex", 0)
+        themeIndex = themeEditor.getInt("themeIndex", 2)
         setTheme(currentThemeNav[themeIndex])
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
         //for nav drawer
         toggle = ActionBarDrawerToggle(this, binding.root,R.string.open, R.string.close)
         binding.root.addDrawerListener(toggle)
         toggle.syncState()
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
         //checking for dark theme
-        if(themeIndex == 4 &&  resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_NO)
+        if(themeIndex == 5 &&  resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_NO)
             Toast.makeText(this, "Black Theme Works Best in Dark Mode!!", Toast.LENGTH_LONG).show()
 
         if(requestRuntimePermission()){
@@ -121,6 +120,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     val customDialog = builder.create()
                     customDialog.show()
+
                     setDialogBtnBackground(this, customDialog)
                 }
             }
@@ -169,24 +169,26 @@ class MainActivity : AppCompatActivity() {
 
     @RequiresApi(Build.VERSION_CODES.R)
     @SuppressLint("SetTextI18n")
-    private fun initializeLayout() {
+    private fun initializeLayout(){
         search = false
         val sortEditor = getSharedPreferences("SORTING", MODE_PRIVATE)
         sortOrder = sortEditor.getInt("sortOrder", 0)
         MusicListMA = getAllAudio()
-        if (MusicListMA.isEmpty()) {
-            // Hiển thị thông báo khi danh sách bài hát trống
-            Toast.makeText(this, "Không có bài hát nào được tìm thấy", Toast.LENGTH_SHORT).show()
-        } else {
-            binding.musicRV.setHasFixedSize(true)
-            binding.musicRV.setItemViewCacheSize(13)
-            binding.musicRV.layoutManager = LinearLayoutManager(this@MainActivity)
-            musicAdapter = MusicAdapter(this@MainActivity, MusicListMA)
-            binding.musicRV.adapter = musicAdapter
-            binding.totalSongs.text = "Total Songs : " + musicAdapter.itemCount
+        binding.musicRV.setHasFixedSize(true)
+        binding.musicRV.setItemViewCacheSize(13)
+        binding.musicRV.layoutManager = LinearLayoutManager(this@MainActivity)
+        musicAdapter = MusicAdapter(this@MainActivity, MusicListMA)
+        binding.musicRV.adapter = musicAdapter
+        binding.totalSongs.text  = "Total Songs : "+musicAdapter.itemCount
+
+        //for refreshing layout on swipe from top
+        binding.refreshLayout.setOnRefreshListener {
+            MusicListMA = getAllAudio()
+            musicAdapter.updateMusicList(MusicListMA)
+
+            binding.refreshLayout.isRefreshing = false
         }
     }
-
     @SuppressLint("Recycle", "Range")
     @RequiresApi(Build.VERSION_CODES.R)
     private fun getAllAudio(): ArrayList<Music>{
@@ -195,14 +197,8 @@ class MainActivity : AppCompatActivity() {
         val projection = arrayOf(MediaStore.Audio.Media._ID,MediaStore.Audio.Media.TITLE,MediaStore.Audio.Media.ALBUM,
             MediaStore.Audio.Media.ARTIST,MediaStore.Audio.Media.DURATION,MediaStore.Audio.Media.DATE_ADDED,
             MediaStore.Audio.Media.DATA, MediaStore.Audio.Media.ALBUM_ID)
-
-        val cursor = this.contentResolver.query(
-            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-            projection,
-            selection,
-            null,
+        val cursor = this.contentResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, projection,selection,null,
             sortingList[sortOrder], null)
-
         if(cursor != null){
             if(cursor.moveToFirst()){
                 do {
@@ -212,11 +208,9 @@ class MainActivity : AppCompatActivity() {
                     val artistC = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST))?:"Unknown"
                     val pathC = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA))
                     val durationC = cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION))
-
                     val albumIdC = cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID)).toString()
                     val uri = Uri.parse("content://media/external/audio/albumart")
                     val artUriC = Uri.withAppendedPath(uri, albumIdC).toString()
-
                     val music = Music(id = idC, title = titleC, album = albumC, artist = artistC, path = pathC, duration = durationC,
                         artUri = artUriC)
                     val file = File(music.path)
@@ -228,7 +222,6 @@ class MainActivity : AppCompatActivity() {
         }
         return tempList
     }
-
 
     override fun onDestroy() {
         super.onDestroy()
@@ -281,7 +274,4 @@ class MainActivity : AppCompatActivity() {
         })
         return super.onCreateOptionsMenu(menu)
     }
-
-
-
 }

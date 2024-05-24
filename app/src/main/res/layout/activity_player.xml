@@ -25,13 +25,13 @@
             android:background="?attr/selectableItemBackground"
             android:layout_marginStart="5dp"
             android:contentDescription="@string/back_btn"
-            app:tint="@color/black"
+            app:tint="?colorOnPrimary"
             android:padding="10dp" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:textColor="@color/black"
+            android:textColor="?colorOnPrimary"
             android:text="@string/world_of_music"
             android:textSize="20sp"
             android:gravity="center"

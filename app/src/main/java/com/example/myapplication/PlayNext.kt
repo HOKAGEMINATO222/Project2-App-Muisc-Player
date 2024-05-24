@@ -1,20 +1,35 @@
 package com.example.myapplication
 
+import Adapter.FavouriteAdapter
+import Data.Music
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.recyclerview.widget.GridLayoutManager
+import com.example.myapplication.databinding.ActivityPlayNextBinding
 
 class PlayNext : AppCompatActivity() {
+
+    companion object{
+        var playNextList: ArrayList<Music> = ArrayList()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContentView(R.layout.activity_play_next)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+        setTheme(MainActivity.currentTheme[MainActivity.themeIndex])
+        val binding = ActivityPlayNextBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        binding.playNextRV.setHasFixedSize(true)
+        binding.playNextRV.setItemViewCacheSize(13)
+        binding.playNextRV.layoutManager = GridLayoutManager(this, 4)
+        binding.playNextRV.adapter = FavouriteAdapter(this, playNextList, playNext = true)
+
+        if(playNextList.isNotEmpty())
+            binding.instructionPN.visibility = View.GONE
+
+        binding.backBtnPN.setOnClickListener {
+            finish()
         }
     }
 }
